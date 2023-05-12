@@ -4,8 +4,7 @@ A python library for computing technical analysis indicators on streaming data.
 
 ## Installation
 ```
-python setup.py bdist_wheel
-pip install dist/AlgoTrading-*.whl
+pip install streaming-indicators
 ```
 ## Why another TA library?
 There are many other technical analysis python packages, most notably ta-lib, then why another library?  
