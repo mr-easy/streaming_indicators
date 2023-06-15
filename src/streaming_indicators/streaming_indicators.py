@@ -7,7 +7,7 @@ class SMA:
         self.points = []
         self.value = None
     def compute(self, point):
-        return np.mean(self.points + [point])
+        return np.mean(self.points + [float(point)])
     def update(self, point):
         self.points.append(float(point))
         self.points = self.points[-self.period:]
@@ -41,6 +41,9 @@ class RSI:
         self.avg_loss = None
         self.rsi = None
         self.value = None
+    # def compute(self, point):
+    #     points = self.points + [float(point)]
+        
     def update(self, point):
         self.points.append(float(point))
         if(len(self.points) > 1):
@@ -70,7 +73,8 @@ class RSI:
 class HeikinAshi:
     def __init__(self):
         self.value = None
-    def update(self, candle):
+
+    def compute(self, candle):
         ha = {}
         ha['close'] = round((candle.open+candle.high+candle.low+candle.close)/4,4)
         if(self.value is None):
@@ -80,5 +84,79 @@ class HeikinAshi:
             ha['open'] = round((self.value['open']+self.value['close'])/2,4)
         ha['high'] = max(candle.high, ha['open'], ha['close'])
         ha['low'] = min(candle.low, ha['open'], ha['close'])
-        self.value = ha
+        return ha
+
+    def update(self, candle):
+        self.value = self.compute(candle)
         return self.value
+
+class Renko:
+    def __init__(self, start_price=None):
+        self.bricks = []
+        self.current_direction = 0
+        self.brick_end_price = start_price
+        self.pwick = 0   # positive wick
+        self.nwick = 0   # negative wick
+        self.brick_num = 0
+        self.value = None
+        
+    def _create_brick(self, direction, brick_size):
+        brick = {
+            'direction': direction,
+            'brick_num': self.brick_num,
+            'wick_size': self.nwick if direction==1 else self.pwick,
+            'brick_size': brick_size
+        }
+        self.bricks.append(brick)
+        self.brick_num += 1
+        self.current_direction = direction
+        self.pwick = 0
+        self.nwick = 0
+        return brick        
+        
+    def update(self, price, brick_size):
+        if(self.brick_end_price is None):
+            self.brick_end_price = price
+            return None
+        bricks = None
+        change = round(price - self.brick_end_price, 2)
+        self.pwick = max(change, self.pwick)
+        self.nwick = min(-change, self.nwick)
+        if(self.current_direction == 0):
+            direction = 0
+            if(change >= brick_size): direction = 1
+            elif(-change >= brick_size): direction = -1
+            if(direction != 0):
+                #print("firect brick direction:", str(direction))
+                num_bricks = int(abs(change)//brick_size)
+                bricks = [self._create_brick(direction, brick_size) for i in range(num_bricks)]
+                self.brick_end_price = self.brick_end_price + direction*num_bricks*brick_size
+                
+        elif(self.current_direction == 1):
+            if(change >= brick_size):
+                # more bricks in +1 direction
+                num_bricks = int(abs(change)//brick_size)
+                bricks = [self._create_brick(1, brick_size) for i in range(num_bricks)]
+                self.brick_end_price = self.brick_end_price + num_bricks*brick_size
+                
+            elif(-change >= 2*brick_size):
+                # reverse direction to -1
+                num_bricks = int(abs(change)//brick_size)
+                bricks = [self._create_brick(-1, brick_size) for i in range(num_bricks-1)]
+                self.brick_end_price = self.brick_end_price - num_bricks*brick_size
+                
+        elif(self.current_direction == -1):
+            if(-change >= brick_size):
+                # more bricks in -1 direction
+                num_bricks = int(abs(change)//brick_size)
+                bricks = [self._create_brick(-1, brick_size) for i in range(num_bricks)]
+                self.brick_end_price = self.brick_end_price - num_bricks*brick_size
+                
+            elif(change >= 2*brick_size):
+                # reverse direction to +1
+                num_bricks = int(abs(change)//brick_size)
+                bricks = [self._create_brick(1, brick_size) for i in range(num_bricks-1)]
+                self.brick_end_price = self.brick_end_price + num_bricks*brick_size
+
+        self.value = bricks
+        return bricks

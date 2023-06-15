@@ -24,3 +24,8 @@ sma = SMA(10)
 for i in range(20):
     print(i, sma.update(i))
 ```
+## TODO
+- Not all indicators current support compute method.
+- Add documentation.
+- HeikinAshi depends on key names, eg ('open','close'). Should be independent, i.e. given in input.
+- Implement more indicators.
