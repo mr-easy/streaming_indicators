@@ -24,6 +24,16 @@ sma = SMA(10)
 for i in range(20):
     print(i, sma.update(i))
 ```
+
+## List of indicators
+- Simple Moving Average (SMA)
+- Exponential Moving Average (EMA)
+- Relative Strength Index (RSI)
+- True Range (TR)
+- Average True Range (ATR)
+- Heikin Ashi Candlesticks (HeikinAshi)
+- Renko Bricks (Renko)
+
 ## TODO
 - Not all indicators current support compute method.
 - Add documentation.

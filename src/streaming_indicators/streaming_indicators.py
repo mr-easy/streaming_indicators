@@ -70,6 +70,57 @@ class RSI:
             self.value = self.rsi
         return self.value
 
+class TRANGE:
+    '''True Range'''
+    def __init__(self):
+        self.prev_close = None
+        self.value = None
+    def compute(self, candle):
+        if(self.prev_close is None):
+            return candle['high'] - candle['low']
+        else:
+            return max(
+                candle['high'] - candle['low'],
+                abs(candle['high'] - self.prev_close),
+                abs(candle['low'] - self.prev_close)
+            )
+    def update(self, candle):
+        self.value = self.compute(candle)
+        self.prev_close = candle['close']
+        return self.value
+
+class ATR:
+    '''Average True Range'''
+    def __init__(self, period):
+        self.period = period
+        self.period_1 = period-1
+        self.TR = TRANGE()
+        self.atr = 0
+        self.value = None
+        self.count = 0
+    def compute(self, candle):
+        tr = self.TR.compute(candle)
+        if(self.count < self.period):
+            return None
+        elif(self.count == self.period):
+            return (self.atr + tr)/self.period
+        else:
+            return (self.atr*self.period_1 + tr)/self.period
+
+    def update(self, candle):
+        self.count += 1
+        tr = self.TR.update(candle)
+        if(self.count < self.period):
+            self.atr += tr
+            return None
+        if(self.count == self.period):
+            self.atr += tr
+            self.atr /= self.period
+        else:
+            self.atr = (self.atr*self.period_1 + tr)/self.period
+        self.value = self.atr
+        return self.value
+
 class HeikinAshi:
     def __init__(self):
         self.value = None
