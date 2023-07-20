@@ -43,7 +43,7 @@ for idx, candle in candles.iterrows():
     rsi = RSI.update(candle['close'])
     print(rsi)
 ```
-- True Range (TR)
+- True Range (TRANGE)
 - Average True Range (ATR)
 ```
 atr_period = 20
@@ -51,6 +51,14 @@ ATR = si.ATR(atr_period)
 for idx, candle in candles.iterrows():
     atr = ATR.update(candle)  # Assumes candle to have 'open',high','low','close' - TODO: give multiple inputs to update.
     print(atr)
+```
+- SuperTrend (SuperTrend) 
+```
+st_atr_length = 10
+st_factor = 3
+ST = si.SuperTrend(st_atr_length, st_factor)
+for idx, candle in data.iterrows():
+    st = ST.update(candle)
 ```
 - Heikin Ashi Candlesticks (HeikinAshi)
 - Renko Bricks (Renko)
@@ -77,5 +85,5 @@ for idx, candle in candles.iterrows():
 ## TODO
 - Not all indicators current support compute method.
 - Add documentation.
-- HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input.
+- SuperTrend,HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input.
 - Implement more indicators.
