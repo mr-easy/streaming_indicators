@@ -121,6 +121,59 @@ class ATR:
         self.value = self.atr
         return self.value
 
+class SuperTrend:
+    def __init__(self, atr_length, factor):
+        self.ATR = ATR(atr_length)
+        self.factor = factor
+        self.lower_band = None
+        self.upper_band = None
+        self.super_trend = 1
+        self.final_band = None
+    def compute(self, candle):
+        median = round((candle['high']+candle['low'])/2, 4)
+        atr = self.ATR.compute(candle)
+        if(atr is None):
+            return None, None
+        basic_upper_band = round(median + self.factor * atr, 4)
+        basic_lower_band = round(median - self.factor * atr, 4)
+        super_trend = self.super_trend
+        if self.super_trend == 1:
+            upper_band = basic_upper_band
+            lower_band = max(basic_lower_band, self.lower_band) if self.lower_band is not None else basic_lower_band
+            if candle['close'] <= self.lower_band: super_trend = -1
+        else:
+            lower_band = basic_lower_band
+            upper_band = min(basic_upper_band, self.upper_band) if self.upper_band is not None else basic_upper_band
+            if candle['close'] >= self.upper_band: super_trend = 1
+        if(super_trend == 1):
+            final_band = lower_band
+        else:
+            final_band = upper_band
+        return super_trend, final_band
+    def update(self, candle):
+        median = round((candle['high']+candle['low'])/2, 4)
+        atr = self.ATR.update(candle)
+        if(atr is None):
+            return None, None
+        basic_upper_band = round(median + self.factor * atr, 4)
+        basic_lower_band = round(median - self.factor * atr, 4)
+        if self.super_trend == 1:
+            self.upper_band = basic_upper_band
+            self.lower_band = max(basic_lower_band, self.lower_band) if self.lower_band is not None else basic_lower_band
+            if candle['close'] <= self.lower_band:
+                self.super_trend = -1
+        else:
+            self.lower_band = basic_lower_band
+            self.upper_band = min(basic_upper_band, self.upper_band) if self.upper_band is not None else basic_upper_band
+            if candle['close'] >= self.upper_band:
+                self.super_trend = 1
+
+        if(self.super_trend == 1):
+            self.final_band = self.lower_band
+        else:
+            self.final_band = self.upper_band
+        return self.super_trend, self.final_band
+
 class HeikinAshi:
     def __init__(self):
         self.value = None
@@ -151,12 +204,15 @@ class Renko:
         self.brick_num = 0
         self.value = None
         
-    def _create_brick(self, direction, brick_size):
+    def _create_brick(self, direction, brick_size, price):
+        self.brick_end_price = round(self.brick_end_price + direction*brick_size,2)
         brick = {
             'direction': direction,
             'brick_num': self.brick_num,
             'wick_size': self.nwick if direction==1 else self.pwick,
-            'brick_size': brick_size
+            'brick_size': brick_size,
+            'brick_end_price': self.brick_end_price,
+            'price': price
         }
         self.bricks.append(brick)
         self.brick_num += 1
@@ -168,6 +224,7 @@ class Renko:
     def update(self, price, brick_size):
         if(self.brick_end_price is None):
             self.brick_end_price = price
+            #print("renko brick start price:", price)
             return None
         bricks = None
         change = round(price - self.brick_end_price, 2)
@@ -180,34 +237,29 @@ class Renko:
             if(direction != 0):
                 #print("firect brick direction:", str(direction))
                 num_bricks = int(abs(change)//brick_size)
-                bricks = [self._create_brick(direction, brick_size) for i in range(num_bricks)]
-                self.brick_end_price = self.brick_end_price + direction*num_bricks*brick_size
+                bricks = [self._create_brick(direction, brick_size, price) for i in range(num_bricks)]
                 
         elif(self.current_direction == 1):
             if(change >= brick_size):
                 # more bricks in +1 direction
                 num_bricks = int(abs(change)//brick_size)
-                bricks = [self._create_brick(1, brick_size) for i in range(num_bricks)]
-                self.brick_end_price = self.brick_end_price + num_bricks*brick_size
+                bricks = [self._create_brick(1, brick_size, price) for i in range(num_bricks)]
                 
             elif(-change >= 2*brick_size):
                 # reverse direction to -1
                 num_bricks = int(abs(change)//brick_size)
-                bricks = [self._create_brick(-1, brick_size) for i in range(num_bricks-1)]
-                self.brick_end_price = self.brick_end_price - num_bricks*brick_size
+                bricks = [self._create_brick(-1, brick_size, price) for i in range(num_bricks-1)]
                 
         elif(self.current_direction == -1):
             if(-change >= brick_size):
                 # more bricks in -1 direction
                 num_bricks = int(abs(change)//brick_size)
-                bricks = [self._create_brick(-1, brick_size) for i in range(num_bricks)]
-                self.brick_end_price = self.brick_end_price - num_bricks*brick_size
+                bricks = [self._create_brick(-1, brick_size, price) for i in range(num_bricks)]
                 
             elif(change >= 2*brick_size):
                 # reverse direction to +1
                 num_bricks = int(abs(change)//brick_size)
-                bricks = [self._create_brick(1, brick_size) for i in range(num_bricks-1)]
-                self.brick_end_price = self.brick_end_price + num_bricks*brick_size
+                bricks = [self._create_brick(1, brick_size, price) for i in range(num_bricks-1)]
 
         self.value = bricks
         return bricks
