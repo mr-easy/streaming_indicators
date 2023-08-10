@@ -35,6 +35,7 @@ for idx, candle in candles.iterrows():
     ema = EMA.update(candle['close'])
     print(ema)
 ```
+- Smoothed Moving Average (SMMA)
 - Relative Strength Index (RSI)
 ```
 period = 14
@@ -83,7 +84,7 @@ for idx, candle in candles.iterrows():
 ```
 
 ## TODO
-- Not all indicators current support compute method.
+- Not all indicators currently support compute method.
 - Add documentation.
 - SuperTrend,HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input.
 - Implement more indicators.

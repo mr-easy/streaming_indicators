@@ -30,6 +30,18 @@ class EMA:
         elif(len(self.points) > self.period):
             self.value = (point * self.mult) + (self.value * (1-self.mult))
         return self.value
+
+class SMMA:
+    '''Smoothed Moving Average'''
+    def __init__(self, period):
+        assert period > 1, "Period needs to be greater than 1."
+        self.period = period
+        self.ema_period = self.period*2-1
+        # https://stackoverflow.com/a/72533211/6430403
+        self.ema = EMA(self.ema_period)
+    def update(self, point):
+        self.value = self.ema.update(point)
+        return self.value
     
 class RSI:
     def __init__(self, period):
