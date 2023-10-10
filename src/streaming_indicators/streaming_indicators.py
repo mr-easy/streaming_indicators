@@ -275,3 +275,40 @@ class Renko:
 
         self.value = bricks
         return bricks
+
+from collections import deque
+import operator
+COMPARATORS = {
+    '>': operator.gt,
+    '<': operator.lt,
+    '>=': operator.ge,
+    '<=': operator.le,
+    '==': operator.eq    
+}
+class IsOrder:
+    ''' Checks if a given list of elements is in an order. eg. all increasing '''
+    ''' all_increasing = IsOrder('>', len) '''
+    ''' all_decreasing = IsOrder('<=', len) '''
+    ''' doubling = IsOrder(lambda a,b: a == 2*b, len) '''
+    def __init__(self, comparator, length):
+        self.comparator = COMPARATORS.get(comparator, comparator)
+        self.length = length
+        self.q = deque(length*[None], maxlen=length)
+        self.fresh = True
+        self.order_idx = 1
+        self.is_ordered = False
+        self.value = False
+
+    def update(self, element):
+        self.q.append(element)
+        if(self.fresh): 
+            self.fresh = False
+            return False
+        # comparator (new element, old element)
+        if(self.comparator(element, self.q[-2])):
+            self.order_idx += 1
+        else:
+            self.order_idx = 1
+        self.is_ordered = self.order_idx >= self.length
+        self.value = self.is_ordered
+        return self.value
