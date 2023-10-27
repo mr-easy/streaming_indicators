@@ -1,5 +1,5 @@
 import numpy as np
-
+from collections import deque
 
 class SMA:
     def __init__(self, period):
@@ -29,6 +29,19 @@ class EMA:
             self.value = np.mean(self.points) # Simple SMA
         elif(len(self.points) > self.period):
             self.value = (point * self.mult) + (self.value * (1-self.mult))
+        return self.value
+
+class WMA:
+    def __init__(self, period):
+        self.period = period
+        self.points = deque(maxlen=period)
+        self._den = (period*(period+1))//2
+        self._weights = np.arange(1,period+1)
+        self.value = None
+    def update(self, point):
+        self.points.append(point)
+        if(len(self.points) == self.period):
+            self.value = sum(self._weights*self.points)/self._den
         return self.value
 
 class SMMA:
@@ -276,7 +289,6 @@ class Renko:
         self.value = bricks
         return bricks
 
-from collections import deque
 import operator
 COMPARATORS = {
     '>': operator.gt,

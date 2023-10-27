@@ -35,6 +35,7 @@ for idx, candle in candles.iterrows():
     ema = EMA.update(candle['close'])
     print(ema)
 ```
+- Weighted Moving Average (WMA)
 - Smoothed Moving Average (SMMA)
 - Relative Strength Index (RSI)
 ```
@@ -82,7 +83,15 @@ for idx, candle in candles.iterrows():
     bricks = Renko.update(candle['close'], atr)
     print(bricks)
 ```
-
+- Order Checking (IsOrder)
+Checks if the running sequence is in a given order, eg increasing, decreasing, exponential, etc. Useful when checking if consecutive n candles/ltps were increasing.
+```
+period = 10
+all_increasing = IsOrder('>', period)
+for idx, candle in candles.iterrows():
+    is_increasing = all_increasing.update(candle['close'])
+    print(is_increasing) # True/False
+```
 ## TODO
 - Not all indicators currently support compute method.
 - Add documentation.
