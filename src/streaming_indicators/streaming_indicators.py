@@ -154,6 +154,7 @@ class SuperTrend:
         self.upper_band = None
         self.super_trend = 1
         self.final_band = None
+        self.value = (None, None) # direction, value
     def compute(self, candle):
         median = round((candle['high']+candle['low'])/2, 4)
         atr = self.ATR.compute(candle)
@@ -174,7 +175,7 @@ class SuperTrend:
             final_band = lower_band
         else:
             final_band = upper_band
-        return super_trend, final_band
+        return (super_trend, final_band)
     def update(self, candle):
         median = round((candle['high']+candle['low'])/2, 4)
         atr = self.ATR.update(candle)
@@ -197,7 +198,8 @@ class SuperTrend:
             self.final_band = self.lower_band
         else:
             self.final_band = self.upper_band
-        return self.super_trend, self.final_band
+        self.value = (self.super_trend, self.final_band)
+        return self.value
 
 class HeikinAshi:
     def __init__(self):
@@ -251,6 +253,7 @@ class Renko:
             self.brick_end_price = price
             #print("renko brick start price:", price)
             return None
+        if(brick_size is None): return None
         bricks = None
         change = round(price - self.brick_end_price, 2)
         self.pwick = max(change, self.pwick)
