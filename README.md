@@ -8,7 +8,7 @@ pip install streaming-indicators
 ```
 ## Why another TA library?
 There are many other technical analysis python packages, most notably ta-lib, then why another library?  
-All other libraries work on static data, but you can not add values to any indicator. But in real system, data values keeps coming, and indicators should keep updating. This library is for that purpose.
+All other libraries work on static data, you can not add values to any indicator. But in real-time trading system, price values (ticks/candles) keeps streaming, and indicators should update on real-time. This library is for that purpose.
 
 ## Usage
 Each indicator is a class, and is statefull. It will have 3 main functions:
