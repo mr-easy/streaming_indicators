@@ -59,10 +59,17 @@ for idx, candle in candles.iterrows():
 st_atr_length = 10
 st_factor = 3
 ST = si.SuperTrend(st_atr_length, st_factor)
-for idx, candle in data.iterrows():
+for idx, candle in candles.iterrows():
     st = ST.update(candle)
+    print(st) # (st_direction:1/-1, band_value)
 ```
 - Heikin Ashi Candlesticks (HeikinAshi)
+```
+HA = si.HeikinAshi()
+for idx, candle in candles.iterrows():
+    ha_candle = HA.update(candle)
+    print(ha_candle) # {'close': float, 'open': float, 'high': float, 'low': float}
+```
 - Renko Bricks (Renko)
 ```
 # For fixed brick size
@@ -70,7 +77,7 @@ brick_size = 20
 Renko = si.Renko()
 for idx, candle in candles.iterrows():
     bricks = Renko.update(candle['close'], brick_size)
-    print(bricks)
+    print(bricks) # [{'direction': 1/-1, 'brick_num': int, 'wick_size': float, 'brick_size': float, 'brick_end_price': float, 'price': float}, {}]: list of bricks formed after this candle
 ```
 ```
 # For brick size using ATR
