@@ -63,6 +63,7 @@ for idx, candle in candles.iterrows():
     st = ST.update(candle)
     print(st) # (st_direction:1/-1, band_value)
 ```
+To use some historical candles to initiate, use: `ST = si.SuperTrend(st_atr_length, st_factor, candles=initial_candles)` where `initial_candles` is pandas dataframe with `open,high,low,close` columns.  
 - Heikin Ashi Candlesticks (HeikinAshi)
 ```
 HA = si.HeikinAshi()
@@ -102,5 +103,6 @@ for idx, candle in candles.iterrows():
 ## TODO
 - Not all indicators currently support compute method.
 - Add documentation.
-- SuperTrend,HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input.
+- SuperTrend,HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input. (similar to pandas_ta)
+- Add initalisation to all indicators similar to SuperTrend.
 - Implement more indicators.
