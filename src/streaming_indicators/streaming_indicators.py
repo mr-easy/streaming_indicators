@@ -127,9 +127,13 @@ class ATR:
             self.count = 0
         else:
             ta_ATR = ta.atr(candles['high'], candles['low'], candles['close'], length=period)
-            self.atr = ta_ATR.iloc[-1]
-            self.value = self.atr
-            self.count = len(ta_ATR)
+            if(ta_ATR is None):
+                self.atr = 0
+                self.value = None
+            else:
+                self.atr = ta_ATR.iloc[-1]
+                self.value = self.atr
+            self.count = len(candles)
             self.TR.update(candles.iloc[-1])
     def compute(self, candle):
         tr = self.TR.compute(candle)
