@@ -167,17 +167,22 @@ class SuperTrend:
             self.upper_band = None
             self.super_trend = 1
             self.final_band = None
-            self.value = (None, None) # direction, value
         else:
             self.ATR = ATR(atr_length, candles=candles)
             ta_ST = ta.supertrend(candles['high'], candles['low'], candles['close'], length=atr_length, multiplier=self.factor, offset=0)
-            ta_ST.columns = ta_ST.columns.str.replace('_.*','',regex=True)
-            ta_ST_last = ta_ST.iloc[-1]
-            self.lower_band = ta_ST_last['SUPERTl']
-            self.upper_band = ta_ST_last['SUPERTs']
-            self.super_trend = int(ta_ST_last['SUPERTd'])
-            self.final_band = ta_ST_last['SUPERT']
-            self.value = (self.super_trend, self.final_band) # direction, value
+            if(ta_ST is None):
+                self.lower_band = None
+                self.upper_band = None
+                self.super_trend = 1
+                self.final_band = None
+            else:
+                ta_ST.columns = ta_ST.columns.str.replace('_.*','',regex=True)
+                ta_ST_last = ta_ST.iloc[-1]
+                self.lower_band = ta_ST_last['SUPERTl']
+                self.upper_band = ta_ST_last['SUPERTs']
+                self.super_trend = int(ta_ST_last['SUPERTd'])
+                self.final_band = ta_ST_last['SUPERT']
+        self.value = (self.super_trend, self.final_band) # direction, value
                         
     def compute(self, candle):
         median = round((candle['high']+candle['low'])/2, 4)
