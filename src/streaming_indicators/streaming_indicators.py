@@ -62,16 +62,13 @@ class RSI:
         self.period = period
         self._period_minus_1 = period-1
         self._period_plus_1 = period+1
-        self.points = deque(maxlen=period)
-        self.losses = deque(maxlen=period)
-        self.gains = deque(maxlen=period)
+        self.points = deque(maxlen=self._period_plus_1)
+        self.losses = deque(maxlen=self._period_plus_1)
+        self.gains = deque(maxlen=self._period_plus_1)
         self.avg_gain = None
         self.avg_loss = None
         self.rsi = None
         self.value = None
-    # def compute(self, point):
-    #     points = self.points + [float(point)]
-        
     def update(self, point: float):
         self.points.append(point)
         if(len(self.points) > 1):
