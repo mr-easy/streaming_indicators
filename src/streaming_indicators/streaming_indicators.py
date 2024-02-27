@@ -60,9 +60,11 @@ class SMMA:
 class RSI:
     def __init__(self, period):
         self.period = period
-        self.points = []
-        self.losses = []
-        self.gains = []
+        self._period_minus_1 = period-1
+        self._period_plus_1 = period+1
+        self.points = deque(maxlen=period)
+        self.losses = deque(maxlen=period)
+        self.gains = deque(maxlen=period)
         self.avg_gain = None
         self.avg_loss = None
         self.rsi = None
@@ -70,8 +72,8 @@ class RSI:
     # def compute(self, point):
     #     points = self.points + [float(point)]
         
-    def update(self, point):
-        self.points.append(float(point))
+    def update(self, point: float):
+        self.points.append(point)
         if(len(self.points) > 1):
             diff = self.points[-1] - self.points[-2]
             if(diff >= 0):
@@ -80,20 +82,17 @@ class RSI:
             else:
                 self.gains.append(0)
                 self.losses.append(-diff)
-        self.points = self.points[-(self.period+1):]
-        self.gains = self.gains[-(self.period):]
-        self.losses = self.losses[-(self.period):]
 
-        if(len(self.points) == self.period+1):
-            if(self.avg_gain is None):
-                self.avg_gain = np.mean(self.gains)
-                self.avg_loss = np.mean(self.losses)
-            else:
-                self.avg_gain = ((self.avg_gain*(self.period-1)) + self.gains[-1])/self.period
-                self.avg_loss = ((self.avg_loss*(self.period-1)) + self.losses[-1])/self.period
-            rs = self.avg_gain / self.avg_loss
-            self.rsi = 100 - (100/(1+rs))
-            self.value = self.rsi
+            if(len(self.points) == self._period_plus_1):
+                if(self.avg_gain is None):
+                    self.avg_gain = np.mean(self.gains)
+                    self.avg_loss = np.mean(self.losses)
+                else:
+                    self.avg_gain = ((self.avg_gain*(self._period_minus_1)) + self.gains[-1])/self.period
+                    self.avg_loss = ((self.avg_loss*(self._period_minus_1)) + self.losses[-1])/self.period
+                rs = self.avg_gain / self.avg_loss
+                self.rsi = 100 - (100/(1+rs))
+                self.value = self.rsi
         return self.value
 
 class TRANGE:
