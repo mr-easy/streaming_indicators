@@ -63,7 +63,7 @@ for idx, candle in candles.iterrows():
     st = ST.update(candle)
     print(st) # (st_direction:1/-1, band_value)
 ```
-To use some historical candles to initiate, use: `ST = si.SuperTrend(st_atr_length, st_factor, candles=initial_candles)` where `initial_candles` is pandas dataframe with `open,high,low,close` columns.  
+To use some historical candles to initiate, use: `ST = si.SuperTrend(st_atr_length, st_factor, candles=initial_candles)` where `initial_candles` is pandas dataframe with `open,high,low,close` columns, and requires talib package.
 - Heikin Ashi Candlesticks (HeikinAshi)
 ```
 HA = si.HeikinAshi()

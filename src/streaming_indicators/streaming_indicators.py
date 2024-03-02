@@ -1,5 +1,5 @@
 import numpy as np
-import pandas_ta as ta
+import pandas as pd
 from collections import deque
 
 class SMA:
@@ -118,17 +118,18 @@ class ATR:
         self.period_1 = period-1
         self.TR = TRANGE()
         if(candles is None):
-            self.atr = 0
+            self.atr = 0 # initialised to 0, because values are added to it
             self.value = None
             self.count = 0
         else:
-            ta_ATR = ta.atr(candles['high'], candles['low'], candles['close'], length=period)
-            if(ta_ATR is None):
+            from talib import ATR
+            ta_atr = ATR(candles['high'],candles['low'],candles['close'],period)
+            if(pd.notna(ta_atr.iloc[-1])):
+                self.atr = ta_atr.iloc[-1]
+                self.value = self.atr
+            else:
                 self.atr = 0
                 self.value = None
-            else:
-                self.atr = ta_ATR.iloc[-1]
-                self.value = self.atr
             self.count = len(candles)
             self.TR.update(candles.iloc[-1])
     def compute(self, candle):
@@ -157,27 +158,42 @@ class ATR:
 class SuperTrend:
     def __init__(self, atr_length, factor, candles=None):
         self.factor = factor
+        self.super_trend = 1
         if(candles is None):
             self.ATR = ATR(atr_length)
             self.lower_band = None
             self.upper_band = None
-            self.super_trend = 1
             self.final_band = None
         else:
-            self.ATR = ATR(atr_length, candles=candles)
-            ta_ST = ta.supertrend(candles['high'], candles['low'], candles['close'], length=atr_length, multiplier=self.factor, offset=0)
-            if(ta_ST is None):
-                self.lower_band = None
-                self.upper_band = None
-                self.super_trend = 1
-                self.final_band = None
+            self.ATR = ATR(atr_length, candles=candles) # TODO: ATR is getting computed twice
+            # Adapted from pandas_ta supertrend.py
+            # https://github.com/twopirllc/pandas-ta/blob/main/pandas_ta/overlap/supertrend.py
+            from talib import ATR as talib_ATR
+            _open = candles['open']
+            _high = candles['high']
+            _low = candles['low']
+            _close = candles['close']
+            _median = 0.5 * (_high + _low) # hl2
+            _fatr = factor * talib_ATR(_high, _low, _close, atr_length)
+            _basic_upperband = _median + _fatr
+            _basic_lowerband = _median - _fatr
+            self.lower_band = _basic_lowerband.iloc[0]
+            self.upper_band = _basic_upperband.iloc[0]
+            for i in range(1,len(candles)):
+                if self.super_trend == 1:
+                    self.upper_band = _basic_upperband.iloc[i]
+                    self.lower_band = max(_basic_lowerband.iloc[i], self.lower_band)
+                    if _close.iloc[i] <= self.lower_band:
+                        self.super_trend = -1
+                else:
+                    self.lower_band = _basic_lowerband.iloc[i]
+                    self.upper_band = min(_basic_upperband.iloc[i], self.upper_band)
+                    if _close.iloc[i] >= self.upper_band:
+                        self.super_trend = 1
+            if(self.super_trend == 1):
+                self.final_band = self.lower_band
             else:
-                ta_ST.columns = ta_ST.columns.str.replace('_.*','',regex=True)
-                ta_ST_last = ta_ST.iloc[-1]
-                self.lower_band = ta_ST_last['SUPERTl']
-                self.upper_band = ta_ST_last['SUPERTs']
-                self.super_trend = int(ta_ST_last['SUPERTd'])
-                self.final_band = ta_ST_last['SUPERT']
+                self.final_band = self.upper_band
         self.value = (self.super_trend, self.final_band) # direction, value
                         
     def compute(self, candle):
@@ -185,8 +201,9 @@ class SuperTrend:
         atr = self.ATR.compute(candle)
         if(atr is None):
             return None, None
-        basic_upper_band = round(median + self.factor * atr, 4)
-        basic_lower_band = round(median - self.factor * atr, 4)
+        _fatr = self.factor * atr
+        basic_upper_band = round(median + _fatr, 4)
+        basic_lower_band = round(median - _fatr, 4)
         super_trend = self.super_trend
         if self.super_trend == 1:
             upper_band = basic_upper_band
@@ -223,6 +240,7 @@ class SuperTrend:
             self.final_band = self.lower_band
         else:
             self.final_band = self.upper_band
+        
         self.value = (self.super_trend, self.final_band)
         return self.value
 
