@@ -111,6 +111,23 @@ class TRANGE:
         self.prev_close = candle['close']
         return self.value
 
+
+class CPR:
+    """Central Pivot Range"""
+    """Reference : https://medium.com/@anoobpaul/pivot-points-and-central-pivot-range-cpr-using-python-04c0a613738c"""
+    def __init__(self):
+        self.value = None
+
+    def compute(self, candle):
+        cpr=   round((candle['high'] + candle['low'] + candle['close']) / 3.0, 2) 
+        bc =  round (((candle['high'] + candle['low']) / 2.0),2)
+        tc=   round ((cpr + (cpr - bc)),2)
+        return (cpr, bc, tc)
+
+    def update(self, candle):
+        self.value = self.compute(candle)
+        return self.value
+
 class ATR:
     '''Average True Range'''
     def __init__(self, period, candles=None):
