@@ -54,6 +54,7 @@ for idx, candle in candles.iterrows():
     atr = ATR.update(candle)  # Assumes candle to have 'open',high','low','close' - TODO: give multiple inputs to update.
     print(atr)
 ```
+- Bollinger Bands (BBands)
 - SuperTrend (SuperTrend) 
 ```
 st_atr_length = 10
@@ -106,3 +107,6 @@ for idx, candle in candles.iterrows():
 - SuperTrend,HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input. (similar to pandas_ta)
 - Add initalisation to all indicators similar to SuperTrend.
 - Implement more indicators.
+
+## Changelogs
+- [Version History](version_history.md)

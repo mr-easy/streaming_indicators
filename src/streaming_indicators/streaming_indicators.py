@@ -3,29 +3,58 @@ import pandas as pd
 from collections import deque
 
 class SMA:
-    def __init__(self, period):
+    '''Simple Moving Average'''
+    def __init__(self, period:int, points=None):
         self.period = period
-        self.points = []
+        if(points is None): self.points = deque(maxlen=period)
+        else: self.points = deque(points[-period:], maxlen=period)
         self.value = None
-    def compute(self, point):
-        return np.mean(self.points + [float(point)])
-    def update(self, point):
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return np.mean(points)
+        return None
+    def update(self, point:float):
         self.points.append(float(point))
-        self.points = self.points[-self.period:]
         if(len(self.points) == self.period):
             self.value = np.mean(self.points)
         return self.value
     
+class SD:
+    '''Standard Deviation'''
+    def __init__(self, period:int, points=None):
+        self.period = period
+        if(points is None): self.points = deque(maxlen=period)
+        else: self.points = deque(points[-period:], maxlen=period)
+        self.value = None
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return np.std(points)
+        return None
+    def update(self, point:float):
+        self.points.append(float(point))
+        if(len(self.points) == self.period):
+            self.value = np.std(self.points)
+        return self.value
+
 class EMA:
-    def __init__(self, period, smoothing_factor=2):
+    '''Exponential Moving Average'''
+    def __init__(self, period:int, smoothing_factor:int=2):
         self.period = period
         self.smoothing_factor = smoothing_factor
-        self.mult = self.smoothing_factor / (1+self.period)
-        self.points = []
+        self.mult = smoothing_factor / (1+period)
+        self.points = deque(maxlen=period+1)
         self.value = None
-    def update(self, point):
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return np.mean(self.points) # Simple SMA
+        elif(len(points) > self.period):
+            return (point * self.mult) + (self.value * (1-self.mult))
+        return None
+    def update(self, point:float):
         self.points.append(point)
-        self.points = self.points[-(self.period+1):]
         if(len(self.points) == self.period):
             self.value = np.mean(self.points) # Simple SMA
         elif(len(self.points) > self.period):
@@ -33,13 +62,19 @@ class EMA:
         return self.value
 
 class WMA:
-    def __init__(self, period):
+    '''Weighted Moving Average'''
+    def __init__(self, period:int):
         self.period = period
         self.points = deque(maxlen=period)
         self._den = (period*(period+1))//2
         self._weights = np.arange(1,period+1)
         self.value = None
-    def update(self, point):
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return sum(self._weights*points)/self._den
+        return None
+    def update(self, point:float):
         self.points.append(point)
         if(len(self.points) == self.period):
             self.value = sum(self._weights*self.points)/self._den
@@ -47,18 +82,21 @@ class WMA:
 
 class SMMA:
     '''Smoothed Moving Average'''
-    def __init__(self, period):
+    def __init__(self, period:int):
         assert period > 1, "Period needs to be greater than 1."
         self.period = period
-        self.ema_period = self.period*2-1
+        self.ema_period = period*2-1
         # https://stackoverflow.com/a/72533211/6430403
-        self.ema = EMA(self.ema_period)
-    def update(self, point):
+        self.ema = EMA(ema_period)
+    def compute(self, point:float):
+        return self.ema.compute(point)
+    def update(self, point:float):
         self.value = self.ema.update(point)
         return self.value
     
 class RSI:
-    def __init__(self, period):
+    '''Relative Strength Index'''
+    def __init__(self, period:int):
         self.period = period
         self._period_minus_1 = period-1
         self._period_plus_1 = period+1
@@ -69,7 +107,7 @@ class RSI:
         self.avg_loss = None
         self.rsi = None
         self.value = None
-    def update(self, point: float):
+    def update(self, point:float):
         self.points.append(point)
         if(len(self.points) > 1):
             diff = self.points[-1] - self.points[-2]
@@ -140,7 +178,6 @@ class ATR:
             return (self.atr + tr)/self.period
         else:
             return (self.atr*self.period_1 + tr)/self.period
-
     def update(self, candle):
         self.count += 1
         tr = self.TR.update(candle)
@@ -153,6 +190,44 @@ class ATR:
         else:
             self.atr = (self.atr*self.period_1 + tr)/self.period
         self.value = self.atr
+        return self.value
+
+class BBands:
+    '''Bollinger Bands'''
+    def __init__(self, period:int, stddev_mult:float, ma=SMA, points=None):
+        self.period = period
+        self.stddev_mult = stddev_mult
+        if(isinstance(ma, type)): # if class
+            self.MA = ma(self.period, points=points)
+        else:
+            self.MA = ma
+        self.SD = SD(period, points=points)
+    @property
+    def middleband(self):
+        return self.MA.value
+    @property
+    def upperband(self):
+        if(self.SD.value is None): return None
+        return self.MA.value + self.SD.value * self.stddev_mult
+    @property
+    def lowerband(self):
+        if(self.SD.value is None): return None
+        return self.MA.value - self.SD.value * self.stddev_mult
+    @property
+    def value(self):
+        return (self.upperband, self.middleband, self.lowerband)
+    def compute(self, point:float):
+        ma = self.MA.compute(point)
+        sd = self.SD.compute(point)
+        if(ma is not None and sd is not None):
+            middleband = ma
+            upperband = ma + sd*self.stddev_mult
+            lowerband = ma - sd*self.stddev_mult
+            return (upperband, middleband, lowerband)
+        return (None, None, None)
+    def update(self, point:float):
+        ma = self.MA.update(point)
+        sd = self.SD.update(point)
         return self.value
 
 class SuperTrend:
@@ -344,10 +419,13 @@ COMPARATORS = {
     '==': operator.eq    
 }
 class IsOrder:
-    ''' Checks if a given list of elements is in an order. eg. all increasing '''
-    ''' all_increasing = IsOrder('>', len) '''
-    ''' all_decreasing = IsOrder('<=', len) '''
-    ''' doubling = IsOrder(lambda a,b: a == 2*b, len) '''
+    ''' 
+        Checks if a given list of elements is in an order. eg. all increasing
+        examples:
+        - all_increasing = IsOrder('>', len)
+        - all_decreasing = IsOrder('<=', len)
+        - doubling = IsOrder(lambda a,b: a == 2*b, len)
+    '''
     def __init__(self, comparator, length):
         self.comparator = COMPARATORS.get(comparator, comparator)
         self.length = length
