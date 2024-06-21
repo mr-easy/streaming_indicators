@@ -2,41 +2,49 @@ import numpy as np
 import pandas as pd
 from collections import deque
 
-class SMA:
+class RollingStat:
+    '''Abstract Class - Used for functions which require computing stat on fixed window queue'''
+    def __init__(self, period:int, func, points=None):
+        assert period > 1, "Period needs to be greater than 1."
+        self.period = period
+        if(points is None): self.points = deque(maxlen=period)
+        else: self.points = deque(points[-period:], maxlen=period)
+        self.func = func
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return self.func(points)
+        return None
+    def update(self, point:float):
+        self.points.append(float(point))
+        return self.value
+    @property
+    def value(self):
+        if(len(self.points) == self.period):
+            return self.func(self.points)
+        return None
+
+class Max(RollingStat):
+    '''Maximum in a rolling window'''
+    def __init__(self, period:int, points=None):
+        super().__init__(period=period, func=max, points=None)
+
+class Min(RollingStat):
+    '''Minimum in a rolling window'''
+    def __init__(self, period:int, points=None):
+        super().__init__(period=period, func=min, points=None)
+
+class SMA(RollingStat):
     '''Simple Moving Average'''
     def __init__(self, period:int, points=None):
-        self.period = period
-        if(points is None): self.points = deque(maxlen=period)
-        else: self.points = deque(points[-period:], maxlen=period)
-        self.value = None
-    def compute(self, point:float):
-        points = (list(self.points) + [float(point)])[-self.period:]
-        if(len(points) == self.period):
-            return np.mean(points)
-        return None
-    def update(self, point:float):
-        self.points.append(float(point))
-        if(len(self.points) == self.period):
-            self.value = np.mean(self.points)
-        return self.value
-    
-class SD:
+        super().__init__(period=period, func=np.mean, points=None)
+        # TODO: Any efficient way rather than computing everytime?
+
+class SD(RollingStat):
     '''Standard Deviation'''
     def __init__(self, period:int, points=None):
-        self.period = period
-        if(points is None): self.points = deque(maxlen=period)
-        else: self.points = deque(points[-period:], maxlen=period)
-        self.value = None
-    def compute(self, point:float):
-        points = (list(self.points) + [float(point)])[-self.period:]
-        if(len(points) == self.period):
-            return np.std(points)
-        return None
-    def update(self, point:float):
-        self.points.append(float(point))
-        if(len(self.points) == self.period):
-            self.value = np.std(self.points)
-        return self.value
+        super().__init__(period=period, func=np.std, points=None)
+        # TODO: Any efficient way rather than computing everytime?
 
 class EMA:
     '''Exponential Moving Average'''
