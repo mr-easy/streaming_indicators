@@ -101,12 +101,16 @@ for idx, candle in candles.iterrows():
     is_increasing = all_increasing.update(candle['close'])
     print(is_increasing) # True/False
 ```
-## TODO
-- Not all indicators currently support compute method.
-- Add documentation.
-- SuperTrend,HeikinAshi,ATR depends on key names, eg ('open','close'). Should be independent, i.e. given in input. (similar to pandas_ta)
-- Add initalisation to all indicators similar to SuperTrend.
-- Implement more indicators.
+- HalfTrend (`HalfTrend`)
+HalfTrend indicator by Alex Orekhov (everget) in tradingview. Refered it's pine script. `trend = 0` for uptrend and `1` for downtrend.
+```
+HT = HalfTrend(amplitude=2, channel_deviation=2, atr_period=100)
+for idx, candle in candles.iterrows():
+    trend, half_trend, up, down, atr_high, atr_low = HT.update(candle)
+```
 
-## Changelogs
+## Changelogs and TODOs
 - [Version History](version_history.md)
+- [TODOs](TODO.md)
+
+If you find this repo useful, do consider giving a star. Contributions are most welcome.

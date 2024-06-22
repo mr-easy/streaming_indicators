@@ -456,3 +456,72 @@ class IsOrder:
         self.is_ordered = self.order_idx >= self.length
         self.value = self.is_ordered
         return self.value
+
+from streaming_indicators import ATR, SMA, Max, Min        
+class HalfTrend:
+    '''HalfTrend by Alex Orekhov (everget) in tradingview. Refered pinescript for source code'''
+    def __init__(self, amplitude, channel_deviation, atr_period=100, candles=None):
+        self.amplitude = amplitude
+        self.channel_deviation = channel_deviation
+        self.atr_period = atr_period
+        self.channel_deviation_by_2 = channel_deviation/2
+        self.ATR = ATR(atr_period)
+        self.Max_high = Max(amplitude)
+        self.Min_low = Min(amplitude)
+        self.SMA_high = SMA(amplitude)
+        self.SMA_low = SMA(amplitude)
+        self.trend = 0  # 0 = uptrend, 1 = downtred
+        self.next_trend = 0
+        self.max_low_price = None
+        self.min_high_price = None
+        self.up = 0
+        self.down = 0
+        self.atr_high = 0
+        self.atr_low = 0
+    def update(self, candle):
+        if(self.max_low_price is None):
+            self.max_low_price = candle['low']
+            self.min_high_price = candle['high']
+        atr = self.ATR.update(candle)
+        high_price = self.Max_high.update(candle['high'])
+        low_price = self.Min_low.update(candle['low'])
+        high_ma = self.SMA_high.update(candle['high'])
+        low_ma = self.SMA_low.update(candle['low'])
+        if(atr is None):
+            return None, None, None, None, None, None
+        dev = self.channel_deviation_by_2 * atr
+        prev_trend = self.trend
+        if self.next_trend == 1:
+            self.max_low_price = max(low_price, self.max_low_price) if self.max_low_price else low_price
+            if high_ma < self.max_low_price and candle['close'] < self.Min_low.points[-2]:
+                self.trend = 1
+                self.next_trend = 0
+                self.min_high_price = high_price
+        else:
+            self.min_high_price = min(high_price, self.min_high_price) if self.min_high_price else high_price
+            if low_ma > self.min_high_price and candle['close'] > self.Max_high.points[-2]:
+                self.trend = 0
+                self.next_trend = 1
+                self.max_low_price = low_price
+
+        if self.trend == 0:
+            if prev_trend != 0:
+                self.up = self.down if self.down is not None else candle['low']
+            else:
+                self.up = max(self.max_low_price, self.up) if self.up else self.max_low_price
+            self.atr_high = self.up + dev
+            self.atr_low = self.up - dev
+        else:
+            if prev_trend != 1:
+                self.down = self.up if self.up is not None else candle['high']
+            else:
+                self.down = min(self.min_high_price, self.down) if self.down else self.min_high_price
+            self.atr_high = self.down + dev
+            self.atr_low = self.down - dev
+
+        self.half_trend = self.up if self.trend == 0 else self.down
+        return self.value
+    
+    @property
+    def value(self):
+        return self.trend, self.half_trend, self.up, self.down, self.atr_high, self.atr_low
