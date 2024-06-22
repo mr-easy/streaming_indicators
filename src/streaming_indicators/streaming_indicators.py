@@ -456,8 +456,7 @@ class IsOrder:
         self.is_ordered = self.order_idx >= self.length
         self.value = self.is_ordered
         return self.value
-
-from streaming_indicators import ATR, SMA, Max, Min        
+    
 class HalfTrend:
     '''HalfTrend by Alex Orekhov (everget) in tradingview. Refered pinescript for source code'''
     def __init__(self, amplitude, channel_deviation, atr_period=100, candles=None):
