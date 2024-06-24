@@ -524,3 +524,47 @@ class HalfTrend:
     @property
     def value(self):
         return self.trend, self.half_trend, self.up, self.down, self.atr_high, self.atr_low
+
+class CWA2Sigma:
+    '''As discussed by Mr Rakesh Pujara in his interview(https://www.youtube.com/watch?v=tSlfPgaWIu4)'''
+    def __init__(self, bb_period:int=50, bb_width:float=2, ema_period:int=100, atr_period:int=14, atr_factor:float=1.8, sl_perc:float=20):
+        self.BBands = BBands(bb_period, bb_width)
+        self.EMA = EMA(ema_period)
+        self.ATR = ATR(atr_period)
+        self.atr_factor = atr_factor
+        self.sl_perc = 100/sl_perc
+        self.signal = 0
+        self.entry_price = None
+        self.sl_price = None
+    @property
+    def value(self):
+        return self.signal, self.entry_price
+    def _signal_change_logic(self, candle, bbands_upper, ema, atr):
+        if(bbands_upper is not None and ema is not None and atr is not None):
+            if(self.signal == 0 and candle['close'] > bbands_upper):
+                signal = 1
+                entry_price = candle['close']
+                sl_price = entry_price * (1-self.sl_perc)
+            elif(self.signal == 1 and candle['close'] <= max(self.sl_price, ema, candle['close']-(atr*self.atr_factor))):
+                signal = 0
+                entry_price = None
+                sl_price = None
+            else:
+                signal = self.signal
+                entry_price = self.entry_price
+                sl_price = self.sl_price
+            return signal, entry_price, sl_price
+        else:
+            return self.signal, self.entry_price, self.sl_price
+    def compute(self, candle):
+        bbands = self.BBands.compute(candle['close'])
+        ema = self.EMA.compute(candle['close'])
+        atr = self.ATR.compute(candle)
+        signal, entry_price, sl_price = self._signal_change_logic(candle, bbands[0], ema, atr)
+        return signal, entry_price
+    def update(self, candle):
+        bbands = self.BBands.update(candle['close'])
+        ema = self.EMA.update(candle['close'])
+        atr = self.ATR.update(candle)
+        self.signal, self.entry_price, self.sl_price = self._signal_change_logic(candle, bbands[0], ema, atr)
+        return self.value

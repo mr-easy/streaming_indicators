@@ -1,5 +1,7 @@
 # Version History
 
+### 0.1.3
+- added `CWA2Sigma`.
 ### 0.1.2
 - added `HalfTrend`.
 ### 0.1.1

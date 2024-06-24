@@ -96,7 +96,7 @@ for idx, candle in candles.iterrows():
 Checks if the running sequence is in a given order, eg increasing, decreasing, exponential, etc. Useful when checking if consecutive n candles/ltps were increasing.
 ```
 period = 10
-all_increasing = IsOrder('>', period)
+all_increasing = si.IsOrder('>', period)
 for idx, candle in candles.iterrows():
     is_increasing = all_increasing.update(candle['close'])
     print(is_increasing) # True/False
@@ -104,9 +104,16 @@ for idx, candle in candles.iterrows():
 - HalfTrend (`HalfTrend`)  
 HalfTrend indicator by Alex Orekhov (everget) in tradingview. Refered it's pine script. `trend = 0` for uptrend and `1` for downtrend.
 ```
-HT = HalfTrend(amplitude=2, channel_deviation=2, atr_period=100)
+HT = si.HalfTrend(amplitude=2, channel_deviation=2, atr_period=100)
 for idx, candle in candles.iterrows():
     trend, half_trend, up, down, atr_high, atr_low = HT.update(candle)
+```
+- CWA 2-Sigma (`CWA2Sigma`)  
+As discussed by Mr Rakesh Pujara in his [interview](https://www.youtube.com/watch?v=tSlfPgaWIu4).
+```
+CWA2Sigma = si.CWA2Sigma(bb_period=50, bb_width=2, ema_period=100, atr_period=14, atr_factor=1.8, sl_perc=20)
+for idx, candle in candles.iterrows():
+    cwa_signal,cwa_entry_price = CWA2Sigma.update(candle)
 ```
 
 ## Changelogs and TODOs
