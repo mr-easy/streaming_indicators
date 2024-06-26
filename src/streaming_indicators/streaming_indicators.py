@@ -2,30 +2,67 @@ import numpy as np
 import pandas as pd
 from collections import deque
 
-class SMA:
-    def __init__(self, period):
+class RollingStat:
+    '''Abstract Class - Used for functions which require computing stat on fixed window queue'''
+    def __init__(self, period:int, func, points=None):
+        assert period > 1, "Period needs to be greater than 1."
         self.period = period
-        self.points = []
-        self.value = None
-    def compute(self, point):
-        return np.mean(self.points + [float(point)])
-    def update(self, point):
+        if(points is None): self.points = deque(maxlen=period)
+        else: self.points = deque(points[-period:], maxlen=period)
+        self.func = func
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return self.func(points)
+        return None
+    def update(self, point:float):
         self.points.append(float(point))
-        self.points = self.points[-self.period:]
-        if(len(self.points) == self.period):
-            self.value = np.mean(self.points)
         return self.value
-    
+    @property
+    def value(self):
+        if(len(self.points) == self.period):
+            return self.func(self.points)
+        return None
+
+class Max(RollingStat):
+    '''Maximum in a rolling window'''
+    def __init__(self, period:int, points=None):
+        super().__init__(period=period, func=max, points=None)
+
+class Min(RollingStat):
+    '''Minimum in a rolling window'''
+    def __init__(self, period:int, points=None):
+        super().__init__(period=period, func=min, points=None)
+
+class SMA(RollingStat):
+    '''Simple Moving Average'''
+    def __init__(self, period:int, points=None):
+        super().__init__(period=period, func=np.mean, points=None)
+        # TODO: Any efficient way rather than computing everytime?
+
+class SD(RollingStat):
+    '''Standard Deviation'''
+    def __init__(self, period:int, points=None):
+        super().__init__(period=period, func=np.std, points=None)
+        # TODO: Any efficient way rather than computing everytime?
+
 class EMA:
-    def __init__(self, period, smoothing_factor=2):
+    '''Exponential Moving Average'''
+    def __init__(self, period:int, smoothing_factor:int=2):
         self.period = period
         self.smoothing_factor = smoothing_factor
-        self.mult = self.smoothing_factor / (1+self.period)
-        self.points = []
+        self.mult = smoothing_factor / (1+period)
+        self.points = deque(maxlen=period+1)
         self.value = None
-    def update(self, point):
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return np.mean(self.points) # Simple SMA
+        elif(len(points) > self.period):
+            return (point * self.mult) + (self.value * (1-self.mult))
+        return None
+    def update(self, point:float):
         self.points.append(point)
-        self.points = self.points[-(self.period+1):]
         if(len(self.points) == self.period):
             self.value = np.mean(self.points) # Simple SMA
         elif(len(self.points) > self.period):
@@ -33,13 +70,19 @@ class EMA:
         return self.value
 
 class WMA:
-    def __init__(self, period):
+    '''Weighted Moving Average'''
+    def __init__(self, period:int):
         self.period = period
         self.points = deque(maxlen=period)
         self._den = (period*(period+1))//2
         self._weights = np.arange(1,period+1)
         self.value = None
-    def update(self, point):
+    def compute(self, point:float):
+        points = (list(self.points) + [float(point)])[-self.period:]
+        if(len(points) == self.period):
+            return sum(self._weights*points)/self._den
+        return None
+    def update(self, point:float):
         self.points.append(point)
         if(len(self.points) == self.period):
             self.value = sum(self._weights*self.points)/self._den
@@ -47,18 +90,21 @@ class WMA:
 
 class SMMA:
     '''Smoothed Moving Average'''
-    def __init__(self, period):
+    def __init__(self, period:int):
         assert period > 1, "Period needs to be greater than 1."
         self.period = period
-        self.ema_period = self.period*2-1
+        self.ema_period = period*2-1
         # https://stackoverflow.com/a/72533211/6430403
-        self.ema = EMA(self.ema_period)
-    def update(self, point):
+        self.ema = EMA(ema_period)
+    def compute(self, point:float):
+        return self.ema.compute(point)
+    def update(self, point:float):
         self.value = self.ema.update(point)
         return self.value
     
 class RSI:
-    def __init__(self, period):
+    '''Relative Strength Index'''
+    def __init__(self, period:int):
         self.period = period
         self._period_minus_1 = period-1
         self._period_plus_1 = period+1
@@ -69,7 +115,7 @@ class RSI:
         self.avg_loss = None
         self.rsi = None
         self.value = None
-    def update(self, point: float):
+    def update(self, point:float):
         self.points.append(point)
         if(len(self.points) > 1):
             diff = self.points[-1] - self.points[-2]
@@ -157,7 +203,6 @@ class ATR:
             return (self.atr + tr)/self.period
         else:
             return (self.atr*self.period_1 + tr)/self.period
-
     def update(self, candle):
         self.count += 1
         tr = self.TR.update(candle)
@@ -170,6 +215,44 @@ class ATR:
         else:
             self.atr = (self.atr*self.period_1 + tr)/self.period
         self.value = self.atr
+        return self.value
+
+class BBands:
+    '''Bollinger Bands'''
+    def __init__(self, period:int, stddev_mult:float, ma=SMA, points=None):
+        self.period = period
+        self.stddev_mult = stddev_mult
+        if(isinstance(ma, type)): # if class
+            self.MA = ma(self.period, points=points)
+        else:
+            self.MA = ma
+        self.SD = SD(period, points=points)
+    @property
+    def middleband(self):
+        return self.MA.value
+    @property
+    def upperband(self):
+        if(self.SD.value is None): return None
+        return self.MA.value + self.SD.value * self.stddev_mult
+    @property
+    def lowerband(self):
+        if(self.SD.value is None): return None
+        return self.MA.value - self.SD.value * self.stddev_mult
+    @property
+    def value(self):
+        return (self.upperband, self.middleband, self.lowerband)
+    def compute(self, point:float):
+        ma = self.MA.compute(point)
+        sd = self.SD.compute(point)
+        if(ma is not None and sd is not None):
+            middleband = ma
+            upperband = ma + sd*self.stddev_mult
+            lowerband = ma - sd*self.stddev_mult
+            return (upperband, middleband, lowerband)
+        return (None, None, None)
+    def update(self, point:float):
+        ma = self.MA.update(point)
+        sd = self.SD.update(point)
         return self.value
 
 class SuperTrend:
@@ -361,10 +444,13 @@ COMPARATORS = {
     '==': operator.eq    
 }
 class IsOrder:
-    ''' Checks if a given list of elements is in an order. eg. all increasing '''
-    ''' all_increasing = IsOrder('>', len) '''
-    ''' all_decreasing = IsOrder('<=', len) '''
-    ''' doubling = IsOrder(lambda a,b: a == 2*b, len) '''
+    ''' 
+        Checks if a given list of elements is in an order. eg. all increasing
+        examples:
+        - all_increasing = IsOrder('>', len)
+        - all_decreasing = IsOrder('<=', len)
+        - doubling = IsOrder(lambda a,b: a == 2*b, len)
+    '''
     def __init__(self, comparator, length):
         self.comparator = COMPARATORS.get(comparator, comparator)
         self.length = length
@@ -386,4 +472,116 @@ class IsOrder:
             self.order_idx = 1
         self.is_ordered = self.order_idx >= self.length
         self.value = self.is_ordered
+        return self.value
+    
+class HalfTrend:
+    '''HalfTrend by Alex Orekhov (everget) in tradingview. Refered pinescript for source code'''
+    def __init__(self, amplitude, channel_deviation, atr_period=100, candles=None):
+        self.amplitude = amplitude
+        self.channel_deviation = channel_deviation
+        self.atr_period = atr_period
+        self.channel_deviation_by_2 = channel_deviation/2
+        self.ATR = ATR(atr_period)
+        self.Max_high = Max(amplitude)
+        self.Min_low = Min(amplitude)
+        self.SMA_high = SMA(amplitude)
+        self.SMA_low = SMA(amplitude)
+        self.trend = 0  # 0 = uptrend, 1 = downtred
+        self.next_trend = 0
+        self.max_low_price = None
+        self.min_high_price = None
+        self.up = 0
+        self.down = 0
+        self.atr_high = 0
+        self.atr_low = 0
+    def update(self, candle):
+        if(self.max_low_price is None):
+            self.max_low_price = candle['low']
+            self.min_high_price = candle['high']
+        atr = self.ATR.update(candle)
+        high_price = self.Max_high.update(candle['high'])
+        low_price = self.Min_low.update(candle['low'])
+        high_ma = self.SMA_high.update(candle['high'])
+        low_ma = self.SMA_low.update(candle['low'])
+        if(atr is None):
+            return None, None, None, None, None, None
+        dev = self.channel_deviation_by_2 * atr
+        prev_trend = self.trend
+        if self.next_trend == 1:
+            self.max_low_price = max(low_price, self.max_low_price) if self.max_low_price else low_price
+            if high_ma < self.max_low_price and candle['close'] < self.Min_low.points[-2]:
+                self.trend = 1
+                self.next_trend = 0
+                self.min_high_price = high_price
+        else:
+            self.min_high_price = min(high_price, self.min_high_price) if self.min_high_price else high_price
+            if low_ma > self.min_high_price and candle['close'] > self.Max_high.points[-2]:
+                self.trend = 0
+                self.next_trend = 1
+                self.max_low_price = low_price
+
+        if self.trend == 0:
+            if prev_trend != 0:
+                self.up = self.down if self.down is not None else candle['low']
+            else:
+                self.up = max(self.max_low_price, self.up) if self.up else self.max_low_price
+            self.atr_high = self.up + dev
+            self.atr_low = self.up - dev
+        else:
+            if prev_trend != 1:
+                self.down = self.up if self.up is not None else candle['high']
+            else:
+                self.down = min(self.min_high_price, self.down) if self.down else self.min_high_price
+            self.atr_high = self.down + dev
+            self.atr_low = self.down - dev
+
+        self.half_trend = self.up if self.trend == 0 else self.down
+        return self.value
+    
+    @property
+    def value(self):
+        return self.trend, self.half_trend, self.up, self.down, self.atr_high, self.atr_low
+
+class CWA2Sigma:
+    '''As discussed by Mr Rakesh Pujara in his interview(https://www.youtube.com/watch?v=tSlfPgaWIu4)'''
+    def __init__(self, bb_period:int=50, bb_width:float=2, ema_period:int=100, atr_period:int=14, atr_factor:float=1.8, sl_perc:float=20):
+        self.BBands = BBands(bb_period, bb_width)
+        self.EMA = EMA(ema_period)
+        self.ATR = ATR(atr_period)
+        self.atr_factor = atr_factor
+        self.sl_perc = 100/sl_perc
+        self.signal = 0
+        self.entry_price = None
+        self.sl_price = None
+    @property
+    def value(self):
+        return self.signal, self.entry_price
+    def _signal_change_logic(self, candle, bbands_upper, ema, atr):
+        if(bbands_upper is not None and ema is not None and atr is not None):
+            if(self.signal == 0 and candle['close'] > bbands_upper):
+                signal = 1
+                entry_price = candle['close']
+                sl_price = entry_price * (1-self.sl_perc)
+            elif(self.signal == 1 and candle['close'] <= max(self.sl_price, ema, candle['close']-(atr*self.atr_factor))):
+                signal = 0
+                entry_price = None
+                sl_price = None
+            else:
+                signal = self.signal
+                entry_price = self.entry_price
+                sl_price = self.sl_price
+            return signal, entry_price, sl_price
+        else:
+            return self.signal, self.entry_price, self.sl_price
+    def compute(self, candle):
+        bbands = self.BBands.compute(candle['close'])
+        ema = self.EMA.compute(candle['close'])
+        atr = self.ATR.compute(candle)
+        signal, entry_price, sl_price = self._signal_change_logic(candle, bbands[0], ema, atr)
+        return signal, entry_price
+    def update(self, candle):
+        bbands = self.BBands.update(candle['close'])
+        ema = self.EMA.update(candle['close'])
+        atr = self.ATR.update(candle)
+        self.signal, self.entry_price, self.sl_price = self._signal_change_logic(candle, bbands[0], ema, atr)
         return self.value
