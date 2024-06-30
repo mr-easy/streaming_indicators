@@ -45,6 +45,7 @@ for idx, candle in candles.iterrows():
     rsi = RSI.update(candle['close'])
     print(rsi)
 ```
+- Central Pivot Range (CPR)  
 - True Range (TRANGE)  
 - Average True Range (ATR)  
 ```

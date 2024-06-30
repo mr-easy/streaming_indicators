@@ -1,5 +1,7 @@
 # Version History
 
+### 0.1.4
+- added `CPR`.
 ### 0.1.3
 - added `CWA2Sigma`.
 ### 0.1.2

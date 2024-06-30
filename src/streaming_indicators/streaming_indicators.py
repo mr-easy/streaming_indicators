@@ -159,19 +159,22 @@ class TRANGE:
 
 
 class CPR:
-    """Central Pivot Range"""
-    """Reference : https://medium.com/@anoobpaul/pivot-points-and-central-pivot-range-cpr-using-python-04c0a613738c"""
+    '''Central Pivot Range'''
+    '''Reference: https://medium.com/@anoobpaul/pivot-points-and-central-pivot-range-cpr-using-python-04c0a613738c'''
     def __init__(self):
-        self.value = None
-
+        self.cpr = None
+        self.bc = None
+        self.tc = None
     def compute(self, candle):
-        cpr=   round((candle['high'] + candle['low'] + candle['close']) / 3.0, 2) 
-        bc =  round (((candle['high'] + candle['low']) / 2.0),2)
-        tc=   round ((cpr + (cpr - bc)),2)
+        cpr = round((candle['high'] + candle['low'] + candle['close']) / 3.0, 2)
+        bc = round (((candle['high'] + candle['low']) / 2.0),2)
+        tc = round ((cpr + (cpr - bc)),2)
         return (cpr, bc, tc)
-
+    @property
+    def value(self):
+        return self.cpr, self.bc, self.tc
     def update(self, candle):
-        self.value = self.compute(candle)
+        self.cpr, self.bc, self.tc = self.compute(candle)
         return self.value
 
 class ATR:
