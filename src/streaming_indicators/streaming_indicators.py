@@ -27,23 +27,23 @@ class RollingStat:
 class Max(RollingStat):
     '''Maximum in a rolling window'''
     def __init__(self, period:int, points=None):
-        super().__init__(period=period, func=max, points=None)
+        super().__init__(period=period, func=max, points=points)
 
 class Min(RollingStat):
     '''Minimum in a rolling window'''
     def __init__(self, period:int, points=None):
-        super().__init__(period=period, func=min, points=None)
+        super().__init__(period=period, func=min, points=points)
 
 class SMA(RollingStat):
     '''Simple Moving Average'''
     def __init__(self, period:int, points=None):
-        super().__init__(period=period, func=np.mean, points=None)
+        super().__init__(period=period, func=np.mean, points=points)
         # TODO: Any efficient way rather than computing everytime?
 
 class SD(RollingStat):
     '''Standard Deviation'''
     def __init__(self, period:int, points=None):
-        super().__init__(period=period, func=np.std, points=None)
+        super().__init__(period=period, func=np.std, points=points)
         # TODO: Any efficient way rather than computing everytime?
 
 class EMA:
