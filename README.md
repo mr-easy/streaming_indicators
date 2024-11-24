@@ -37,6 +37,14 @@ for idx, candle in candles.iterrows():
 ```
 - Weighted Moving Average (WMA)  
 - Smoothed Moving Average (SMMA)  
+- Volume Weighted Average Price (VWAP)
+Computes VWAP using hlc3 and volume, anchors at first candle.
+```
+VWAP = si.VWAP()
+for idx, candle in candles.iterrows():
+    vwap = VWAP.update(candle)
+    print(vwap)
+```
 - Relative Strength Index (RSI)  
 ```
 period = 14

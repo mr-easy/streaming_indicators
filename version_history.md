@@ -1,5 +1,7 @@
 # Version History
 
+### 0.1.6
+- added `VWAP`.
 ### 0.1.5
 - BUG FIX: All `RollingStat` subclasses were passing None in points, instead of points.
 ### 0.1.4

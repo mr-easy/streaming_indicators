@@ -101,7 +101,41 @@ class SMMA:
     def update(self, point:float):
         self.value = self.ema.update(point)
         return self.value
-    
+
+class VWAP:
+    '''Volume Weighted Average Price'''
+    def __init__(self, candles=None):
+        '''
+            tp = typical_price = (high+low+close)3
+            tpv = tp * volume
+            vwap = tpv.cumsum() / volume.cumsum()
+            anchored from first candle.
+        '''
+        if(candles is not None):
+            self.tpv_sum = ((candles['high']+candles['low']+candles['close'])/3 * candles['volume']).sum()
+            self.vol_sum = candles['volume'].sum()
+        else:
+            self.tpv_sum = 0
+            self.vol_sum = 0
+    @staticmethod
+    def _compute_vwap(tpv_sum, vol_sum):
+        if(vol_sum > 0): return tpv_sum/vol_sum
+        return None
+    @property
+    def vwap(self):
+        return self._compute_vwap(self.tpv_sum, self.vol_sum)
+    @property
+    def value(self):
+        return self.vwap
+    def compute(self, candle):
+        tpv_sum = self.tpv_sum + ((candle['high']+candle['low']+candle['close'])/3 * candle['volume'])
+        vol_sum = self.vol_sum + candle['volume']
+        return self._compute_vwap(tpv_sum, vol_sum)
+    def update(self, candle):
+        self.tpv_sum += ((candle['high']+candle['low']+candle['close'])/3 * candle['volume'])
+        self.vol_sum += candle['volume']
+        return self.vwap
+
 class RSI:
     '''Relative Strength Index'''
     def __init__(self, period:int):
