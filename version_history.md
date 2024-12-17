@@ -1,5 +1,8 @@
 # Version History
 
+### 0.1.7
+- added `RMA`.
+- added DIrectional Movement Index `DI` as abstract class and `PLUS_DI` and `MINUS_DI` as it's derived classes.
 ### 0.1.6
 - added `VWAP`.
 ### 0.1.5

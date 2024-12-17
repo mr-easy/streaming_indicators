@@ -102,6 +102,28 @@ class SMMA:
         self.value = self.ema.update(point)
         return self.value
 
+class RMA:
+    '''
+        Moving average used in RSI.
+        https://www.tradingview.com/pine-script-reference/v6/#fun_ta.rma
+    '''
+    def __init__(self, period:int):
+        self._alpha = 1/period
+        self._alpha_1 = 1-self._alpha
+        self.points = deque(maxlen=period)
+        self.rma = None
+    @property
+    def value(self):
+        return self.rma
+    def update(self, point:float):
+        self.points.append(point)
+        if(self.rma is None):
+            self.rma = np.mean(self.points)
+        else:
+            self.rma = self._alpha * point + self._alpha_1 * self.rma
+        self.rma = round(self.rma, 4)
+        return self.rma
+
 class VWAP:
     '''Volume Weighted Average Price'''
     def __init__(self, candles=None):
@@ -578,6 +600,42 @@ class HalfTrend:
     @property
     def value(self):
         return self.trend, self.half_trend, self.up, self.down, self.atr_high, self.atr_low
+
+class DI:
+    ''' Directional Movement Index (abstract class to derive PLUS_DI and MINUS_DI)'''
+    def __init__(self, period:int):
+        self.prev_candle = None
+        self.TRANGE = TRANGE()
+        self.RMA_TR = RMA(period)
+        self.RMA_DI = RMA(period)
+    @property
+    def value(self):
+        return self.di
+    @property
+    def di(self):
+        if(self.RMA_DI.value is not None):
+            return (100 * self.RMA_DI.value)/self.RMA_TR.value
+        return None
+    def update(self, candle):
+        if(self.prev_candle is not None):
+            _up = candle['high'] - self.prev_candle['high']
+            _down = self.prev_candle['low'] - candle['low']
+            _dm = self._logic(_up, _down)
+            self.RMA_DI.update(_dm)
+            tr = self.TRANGE.update(candle)
+            if(tr is not None): self.RMA_TR.update(tr)
+        self.prev_candle = candle
+        return self.di
+
+class MINUS_DI(DI):
+    def _logic(self, _up, _down):
+        if(_down > _up and _down > 0): return _down
+        else: return 0
+
+class PLUS_DI(DI):
+    def _logic(self, _up, _down):
+        if(_up > _down and _up > 0): return _up
+        else: return 0
 
 class CWA2Sigma:
     '''As discussed by Mr Rakesh Pujara in his interview(https://www.youtube.com/watch?v=tSlfPgaWIu4)'''

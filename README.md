@@ -37,7 +37,9 @@ for idx, candle in candles.iterrows():
 ```
 - Weighted Moving Average (WMA)  
 - Smoothed Moving Average (SMMA)  
-- Volume Weighted Average Price (VWAP)
+- RMA (RMA)   
+RMA is used in trading view in many indicators including `RSI`. [Ref](https://www.tradingview.com/pine-script-reference/v6/#fun_ta.rma)
+- Volume Weighted Average Price (VWAP)  
 Computes VWAP using hlc3 and volume, anchors at first candle.
 ```
 VWAP = si.VWAP()
@@ -117,6 +119,7 @@ HT = si.HalfTrend(amplitude=2, channel_deviation=2, atr_period=100)
 for idx, candle in candles.iterrows():
     trend, half_trend, up, down, atr_high, atr_low = HT.update(candle)
 ```
+- Directional Moving Index (`PLUS_DI` and `MINUS_DI`)  
 - CWA 2-Sigma (`CWA2Sigma`)  
 As discussed by Mr Rakesh Pujara in his [interview](https://www.youtube.com/watch?v=tSlfPgaWIu4).
 ```
