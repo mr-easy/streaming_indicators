@@ -409,14 +409,14 @@ class HeikinAshi:
 
     def compute(self, candle):
         ha = {}
-        ha['close'] = round((candle.open+candle.high+candle.low+candle.close)/4,4)
+        ha['close'] = round((candle['open']+candle['high']+candle['low']+candle['close'])/4,4)
         if(self.value is None):
             # no previous candle
-            ha['open'] = candle.open
+            ha['open'] = candle['open']
         else:
             ha['open'] = round((self.value['open']+self.value['close'])/2,4)
-        ha['high'] = max(candle.high, ha['open'], ha['close'])
-        ha['low'] = min(candle.low, ha['open'], ha['close'])
+        ha['high'] = max(candle['high'], ha['open'], ha['close'])
+        ha['low'] = min(candle['low'], ha['open'], ha['close'])
         return ha
 
     def update(self, candle):
