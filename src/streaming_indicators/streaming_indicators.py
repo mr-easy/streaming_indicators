@@ -95,7 +95,7 @@ class SMMA:
         self.period = period
         self.ema_period = period*2-1
         # https://stackoverflow.com/a/72533211/6430403
-        self.ema = EMA(ema_period)
+        self.ema = EMA(self.ema_period)
     def compute(self, point:float):
         return self.ema.compute(point)
     def update(self, point:float):
