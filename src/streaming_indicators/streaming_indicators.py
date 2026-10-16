@@ -233,6 +233,31 @@ class CPR:
         self.cpr, self.bc, self.tc = self.compute(candle)
         return self.value
 
+def _compute_atr(high, low, close, period):
+    try:
+        from talib import ATR as talib_ATR
+        return talib_ATR(high, low, close, period)
+    except (ImportError, ModuleNotFoundError):
+        if not isinstance(high, pd.Series):
+            high = pd.Series(high)
+        if not isinstance(low, pd.Series):
+            low = pd.Series(low)
+        if not isinstance(close, pd.Series):
+            close = pd.Series(close)
+            
+        tr0 = high - low
+        tr1 = (high - close.shift(1)).abs()
+        tr2 = (low - close.shift(1)).abs()
+        tr = pd.concat([tr0, tr1, tr2], axis=1).max(axis=1)
+        
+        atr = pd.Series(index=tr.index, dtype=float)
+        if len(tr) < period:
+            return atr
+        atr.iloc[period - 1] = tr.iloc[:period].mean()
+        for i in range(period, len(tr)):
+            atr.iloc[i] = (atr.iloc[i - 1] * (period - 1) + tr.iloc[i]) / period
+        return atr
+
 class ATR:
     '''Average True Range'''
     def __init__(self, period, candles=None):
@@ -244,8 +269,7 @@ class ATR:
             self.value = None
             self.count = 0
         else:
-            from talib import ATR
-            ta_atr = ATR(candles['high'],candles['low'],candles['close'],period)
+            ta_atr = _compute_atr(candles['high'], candles['low'], candles['close'], period)
             if(pd.notna(ta_atr.iloc[-1])):
                 self.atr = ta_atr.iloc[-1]
                 self.value = self.atr
@@ -327,13 +351,12 @@ class SuperTrend:
             self.ATR = ATR(atr_length, candles=candles) # TODO: ATR is getting computed twice
             # Adapted from pandas_ta supertrend.py
             # https://github.com/twopirllc/pandas-ta/blob/main/pandas_ta/overlap/supertrend.py
-            from talib import ATR as talib_ATR
             _open = candles['open']
             _high = candles['high']
             _low = candles['low']
             _close = candles['close']
             _median = 0.5 * (_high + _low) # hl2
-            _fatr = factor * talib_ATR(_high, _low, _close, atr_length)
+            _fatr = factor * _compute_atr(_high, _low, _close, atr_length)
             _basic_upperband = _median + _fatr
             _basic_lowerband = _median - _fatr
             self.lower_band = _basic_lowerband.iloc[0]
