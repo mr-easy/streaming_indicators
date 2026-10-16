@@ -237,3 +237,30 @@ def test_cwa2sigma_initial():
     sig, entry = cw.compute(c)
     assert sig == 0
     assert entry is None
+
+
+def test_atr_with_candles():
+    import pandas as pd
+    candles = pd.DataFrame({
+        'high': [10, 12, 11, 13, 15],
+        'low': [9, 10, 9, 11, 13],
+        'close': [9.5, 11, 10, 12.5, 14],
+    })
+    atr = si.ATR(period=3, candles=candles)
+    assert atr.value is not None
+    assert atr.value > 0
+
+
+def test_supertrend_with_candles():
+    import pandas as pd
+    candles = pd.DataFrame({
+        'open': [9.5, 11, 10, 12, 14],
+        'high': [10, 12, 11, 13, 15],
+        'low': [9, 10, 9, 11, 13],
+        'close': [9.5, 11, 10, 12.5, 14],
+    })
+    st = si.SuperTrend(atr_length=3, factor=1, candles=candles)
+    assert st.value is not None
+    direction, band = st.value
+    assert direction in (1, -1)
+    assert band > 0
